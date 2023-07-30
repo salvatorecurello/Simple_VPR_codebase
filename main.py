@@ -16,6 +16,13 @@ import parser
 from datasets.test_dataset import TestDataset
 from datasets.train_dataset import TrainDataset
 
+import torch.nn as nn
+from torch.nn.parameter import Parameter
+import torch.nn.functional as F
+from gem import GeM
+
+args = parser.parse_arguments()
+
 
 class LightningModel(pl.LightningModule):
     def __init__(self, val_dataset, test_dataset, descriptors_dim=512, num_preds_to_save=0, save_only_wrong_preds=True):
@@ -26,6 +33,8 @@ class LightningModel(pl.LightningModule):
         self.save_only_wrong_preds = save_only_wrong_preds
         # Use a pretrained model
         self.model = torchvision.models.resnet18(weights=torchvision.models.ResNet18_Weights.DEFAULT)
+        if args.aggregation== 'gem':
+            self.model.avgpool = GeM()
         # Change the output of the FC layer to the desired descriptors dimension
         self.model.fc = torch.nn.Linear(self.model.fc.in_features, descriptors_dim)
         # Set the loss function
