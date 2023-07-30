@@ -1,4 +1,3 @@
-# this is the parser
 import argparse
 
 
@@ -41,6 +40,9 @@ def parse_arguments():
                         help="path to val set (must contain database and queries)")
     parser.add_argument("--test_path", type=str, default="data/sf_xs/test",
                         help="path to test set (must contain database and queries)")
+
+    # Aggregation
+    parser.add_argument("--aggregator", type=str, default=None, help="type of aggregation")
     
     args = parser.parse_args()
     return args
