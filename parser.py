@@ -20,6 +20,16 @@ def parse_arguments():
                         help="stop when training reaches max_epochs")
     parser.add_argument("--num_workers", type=int, default=8,
                         help="number of processes to use for data loading / preprocessing")
+    parser.add_argument("--loss", type=str, default='contrastive',
+                        help="the loss type")
+    parser.add_argument("--alpha", type=int, default=2,
+                        help="alpha parameter of multisimilarity loss")
+    parser.add_argument("--beta", type=int, default=50,
+                        help="beta parameter of multisimilarity loss")
+    parser.add_argument("--base", type=float, default=0.5,
+                        help="base parameter of multisimilarity loss")
+    parser.add_argument("--distance", type=str, default='cosinesimilarity',
+                        help="distance used in multisimilarity loss")
 
     # Architecture parameters
     parser.add_argument("--descriptors_dim", type=int, default=512,
