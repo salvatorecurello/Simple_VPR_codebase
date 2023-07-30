@@ -21,6 +21,8 @@ from torch.nn.parameter import Parameter
 import torch.nn.functional as F
 from gem import GeM
 
+from pytorch_metric_learning.distances import CosineSimilarity, DotProductSimilarity
+
 args = parser.parse_arguments()
 
 
@@ -37,8 +39,22 @@ class LightningModel(pl.LightningModule):
             self.model.avgpool = GeM()
         # Change the output of the FC layer to the desired descriptors dimension
         self.model.fc = torch.nn.Linear(self.model.fc.in_features, descriptors_dim)
+        
         # Set the loss function
-        self.loss_fn = losses.ContrastiveLoss(pos_margin=0, neg_margin=1)
+        if args.loss== 'triplet':
+            print(f"The loss used is: {args.loss}")
+            self.loss_fn = losses.TripletMarginLoss(margin=0.05, swap=False,smooth_loss=False, triplets_per_anchor="all")
+        elif args.loss== 'multisimilarity':
+            if args.distance = 'dotproductsimilarity':
+                print(f"The loss used is: {args.loss} with distance: {args.distance}")
+                self.loss_fn = losses.MultiSimilarityLoss(alpha=args.alpha, beta=args.beta, base=args.base, distance=DotProductSimilarity())
+            elif args.distance = 'cosinesimilarity':
+                print(f"The loss used is: {args.loss} with distance: {args.distance}")
+                self.loss_fn = losses.MultiSimilarityLoss(alpha=args.alpha, beta=args.beta, base=args.base)
+        elif args.loss== 'contrastive':
+            print(f"The loss used is: {args.loss}")
+            self.loss_fn = losses.ContrastiveLoss(pos_margin=0, neg_margin=1)
+
 
     def forward(self, images):
         descriptors = self.model(images)
