@@ -52,7 +52,7 @@ def parse_arguments():
                         help="path to test set (must contain database and queries)")
 
     # Aggregation
-    parser.add_argument("--aggregator", type=str, default=None, help="type of aggregation")
+    parser.add_argument("--aggregator", type=str, default='avg', help="type of aggregation")
     
     args = parser.parse_args()
     return args
