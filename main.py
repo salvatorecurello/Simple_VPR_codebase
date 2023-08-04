@@ -19,7 +19,10 @@ from datasets.train_dataset import TrainDataset
 import torch.nn as nn
 from torch.nn.parameter import Parameter
 import torch.nn.functional as F
-from gem import GeM
+from aggregators.gem import GeMPool
+from aggregators.cosplace import CosPlace
+from aggregators.convap import ConvAP
+from aggregators.mixvpr import MixVPR
 
 from pytorch_metric_learning.distances import CosineSimilarity, DotProductSimilarity
 
@@ -35,10 +38,29 @@ class LightningModel(pl.LightningModule):
         self.save_only_wrong_preds = save_only_wrong_preds
         # Use a pretrained model
         self.model = torchvision.models.resnet18(weights=torchvision.models.ResNet18_Weights.DEFAULT)
-        if args.aggregation== 'gem':
-            self.model.avgpool = GeM()
+
         # Change the output of the FC layer to the desired descriptors dimension
         self.model.fc = torch.nn.Linear(self.model.fc.in_features, descriptors_dim)
+
+        if args.aggregator== 'gem':
+            print(f"The aggregator used is: {args.aggregator}")
+            self.model.fc = None
+            self.model.avgpool = GeMPool()
+        elif args.aggregator == 'cosplace':
+            print(f"The aggregator used is: {args.aggregator}")
+            self.model.fc = None
+            self.model.avgpool = CosPlace(in_dim=512, out_dim=512)
+        elif args.aggregator == 'convap':
+            print(f"The aggregator used is: {args.aggregator}")
+            self.model.fc = None
+            self.model.avgpool = ConvAP(in_channels=512)
+        elif args.aggregator == 'mixvpr':
+            print(f"The aggregator used is: {args.aggregator}")
+            self.model.fc = None # remove fc
+            self.model.layer3 = None #  remove layer3 of resnet18
+            self.model.layer4 = None #  remove layer4 of resnet18
+            self.model.avgpool = MixVPR(in_channels=128, in_h=20, in_w=20, out_channels=128 , mix_depth=4, mpl_ratio=1, out_rows=4)
+
         
         # Set the loss function
         if args.loss== 'triplet':
