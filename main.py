@@ -59,7 +59,7 @@ class LightningModel(pl.LightningModule):
             self.model.fc = None # remove fc
             self.model.layer3 = None #  remove layer3 of resnet18
             self.model.layer4 = None #  remove layer4 of resnet18
-            self.model.avgpool = MixVPR(in_channels=128, in_h=20, in_w=20, out_channels=128 , mix_depth=4, mpl_ratio=1, out_rows=4)
+            self.model.avgpool = MixVPR(in_channels=128, in_h=20, in_w=20, out_channels=128 , mix_depth=4, mlp_ratio=1, out_rows=4)
 
         
         # Set the loss function
