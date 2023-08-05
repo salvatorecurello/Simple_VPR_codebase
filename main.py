@@ -67,10 +67,10 @@ class LightningModel(pl.LightningModule):
             print(f"The loss used is: {args.loss}")
             self.loss_fn = losses.TripletMarginLoss(margin=0.05, swap=False,smooth_loss=False, triplets_per_anchor="all")
         elif args.loss== 'multisimilarity':
-            if args.distance = 'dotproductsimilarity':
+            if args.distance == 'dotproductsimilarity':
                 print(f"The loss used is: {args.loss} with distance: {args.distance}")
                 self.loss_fn = losses.MultiSimilarityLoss(alpha=args.alpha, beta=args.beta, base=args.base, distance=DotProductSimilarity())
-            elif args.distance = 'cosinesimilarity':
+            elif args.distance == 'cosinesimilarity':
                 print(f"The loss used is: {args.loss} with distance: {args.distance}")
                 self.loss_fn = losses.MultiSimilarityLoss(alpha=args.alpha, beta=args.beta, base=args.base)
         elif args.loss== 'contrastive':
