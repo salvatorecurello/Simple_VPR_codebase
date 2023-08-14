@@ -44,7 +44,6 @@ class LightningModel(pl.LightningModule):
 
         if args.aggregator== 'gem':
             print(f"The aggregator used is: {args.aggregator}")
-            self.model.fc = None
             self.model.avgpool = GeMPool()
         elif args.aggregator == 'cosplace':
             print(f"The aggregator used is: {args.aggregator}")
@@ -56,10 +55,12 @@ class LightningModel(pl.LightningModule):
             self.model.avgpool = ConvAP(in_channels=512)
         elif args.aggregator == 'mixvpr':
             print(f"The aggregator used is: {args.aggregator}")
+            #self.model.avgpool = MixVPR(in_channels=128, in_h=28, in_w=28, out_channels=128 , mix_depth=4, mlp_ratio=1, out_rows=4) # we remove layer 3 and 4
+            self.model.avgpool = MixVPR(in_channels=256, in_h=14, in_w=14, out_channels=256, mix_depth=4, mlp_ratio=1, out_rows=4) # we remove layer 4
+            #self.model.avgpool = MixVPR(in_channels=512, in_h=7, in_w=7, out_channels=512, mix_depth=4, mlp_ratio=1, out_rows=4) # we keep all the layers
             self.model.fc = None # remove fc
-            self.model.layer3 = None #  remove layer3 of resnet18
+            #self.model.layer3 = None #  remove layer3 of resnet18
             self.model.layer4 = None #  remove layer4 of resnet18
-            self.model.avgpool = MixVPR(in_channels=128, in_h=20, in_w=20, out_channels=128 , mix_depth=4, mlp_ratio=1, out_rows=4)
 
         
         # Set the loss function
@@ -78,10 +79,24 @@ class LightningModel(pl.LightningModule):
             self.loss_fn = losses.ContrastiveLoss(pos_margin=0, neg_margin=1)
 
 
-    def forward(self, images):
-        descriptors = self.model(images)
-        return descriptors
+    def forward(self, x):
+        x = self.model.conv1(x)
+        x = self.model.bn1(x)
+        x = self.model.relu(x)
+        x = self.model.maxpool(x)
+        x = self.model.layer1(x)
+        x = self.model.layer2(x)
+        if self.model.layer3 is not None:
+            x = self.model.layer3(x)
+        if self.model.layer4 is not None:
+            x = self.model.layer4(x)
+        x = self.model.avgpool(x)
+        if args.aggregator == 'avg' or args.aggregator == 'gem':
+            x = self.model.fc(x)
+        return x
 
+    
+    
     def configure_optimizers(self):
         optimizers = torch.optim.SGD(self.parameters(), lr=0.001, weight_decay=0.001, momentum=0.9)
         return optimizers
