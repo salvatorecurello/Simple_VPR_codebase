@@ -4,7 +4,7 @@ import numpy as np
 import torchvision.models
 import pytorch_lightning as pl
 from torchvision import transforms as tfm
-from pytorch_metric_learning import losses
+from pytorch_metric_learning import losses, miners
 from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import loggers as pl_loggers
@@ -77,8 +77,17 @@ class LightningModel(pl.LightningModule):
         elif args.loss== 'contrastive':
             print(f"The loss used is: {args.loss}")
             self.loss_fn = losses.ContrastiveLoss(pos_margin=0, neg_margin=1)
+        
+        if args.miner == 'multisimilarityminer':
+            print(f"The miner used is: {args.miner}")
+            self.miner_fn = miners.MultiSimilarityMiner(epsilon=args.epsilon)
+        elif args.miner == 'pairmarginminer':
+            print(f"The miner used is: {args.miner}")
+            self.miner_fn = miners.PairMarginMiner(pos_margin=0.2, neg_margin=0.8)
+        else: 
+            self.miner_fn = None
 
-
+    
     def forward(self, x):
         x = self.model.conv1(x)
         x = self.model.bn1(x)
@@ -96,14 +105,28 @@ class LightningModel(pl.LightningModule):
         return x
 
     
-    
     def configure_optimizers(self):
-        optimizers = torch.optim.SGD(self.parameters(), lr=0.001, weight_decay=0.001, momentum=0.9)
+        if args.optimizer== 'sgd':
+            print(f"OPTIMIZER: {args.optimizer} with LEARNING_RATE: {args.learning_rate} and WEIGHT_DECAY: {args.weight_decay}")
+            optimizers = torch.optim.SGD(self.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay, momentum=args.momentum)
+        elif args.optimizer== 'adam':
+            print(f"OPTIMIZER: {args.optimizer} with LEARNING_RATE: {args.learning_rate} and WEIGHT_DECAY: {args.weight_decay}")
+            optimizers = torch.optim.Adam(self.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+        elif args.optimizer== 'adamw':
+            print(f"OPTIMIZER: {args.optimizer} with LEARNING_RATE: {args.learning_rate} and WEIGHT_DECAY: {args.weight_decay}")
+            optimizers = torch.optim.AdamW(self.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+        elif args.optimizer== 'asgd':
+            print(f"OPTIMIZER: {args.optimizer} with LEARNING_RATE: {args.learning_rate} and WEIGHT_DECAY: {args.weight_decay}")
+            optimizers = torch.optim.ASGD(self.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay, momentum=args.momentum)
         return optimizers
 
     #  The loss function call (this method will be called at each training iteration)
     def loss_function(self, descriptors, labels):
-        loss = self.loss_fn(descriptors, labels)
+        if args.miner == 'none':
+            loss = self.loss_fn(descriptors, labels) # no miner
+        else:
+            miner_output = self.miner_fn(descriptors , labels)
+            loss = self.loss_fn(descriptors, labels, miner_output)
         return loss
 
     # This is the training step that's executed at each iteration
@@ -115,6 +138,7 @@ class LightningModel(pl.LightningModule):
 
         # Feed forward the batch to the model
         descriptors = self(images)  # Here we are calling the method forward that we defined above
+        
         loss = self.loss_function(descriptors, labels)  # Call the loss_function we defined above
         
         self.log('loss', loss.item(), logger=True)
