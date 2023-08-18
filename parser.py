@@ -30,7 +30,19 @@ def parse_arguments():
                         help="base parameter of multisimilarity loss")
     parser.add_argument("--distance", type=str, default='cosinesimilarity',
                         help="distance used in multisimilarity loss")
-
+    parser.add_argument("--miner", type=str, default='none',
+                        help="type of miner")
+    parser.add_argument("--epsilon", type=float, default=0.1,
+                        help="epsilon value of the multisimilarityminer")
+    parser.add_argument("--optimizer", type=str, default='sgd',
+                        help="choose the optimizer")
+    parser.add_argument("--learning_rate", type=float, default=0.001,
+                        help="learning rate for the optimizer")
+    parser.add_argument("--weight_decay", type=float, default=0.001,
+                        help="weight_decay for the optimizer")
+    parser.add_argument("--momentum", type=float, default=0.9,
+                        help="momentum for the optimizer")
+                        
     # Architecture parameters
     parser.add_argument("--descriptors_dim", type=int, default=512,
                         help="dimensionality of the output descriptors")
