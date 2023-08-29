@@ -89,20 +89,24 @@ class LightningModel(pl.LightningModule):
 
     
     def forward(self, x):
-        x = self.model.conv1(x)
-        x = self.model.bn1(x)
-        x = self.model.relu(x)
-        x = self.model.maxpool(x)
-        x = self.model.layer1(x)
-        x = self.model.layer2(x)
-        if self.model.layer3 is not None:
-            x = self.model.layer3(x)
-        if self.model.layer4 is not None:
-            x = self.model.layer4(x)
-        x = self.model.avgpool(x)
-        if args.aggregator == 'avg' or args.aggregator == 'gem':
-            x = self.model.fc(x)
-        return x
+        if args.aggregator == 'avg': 
+            descriptors = self.model(x)
+            return descriptors
+        else:
+            x = self.model.conv1(x)
+            x = self.model.bn1(x)
+            x = self.model.relu(x)
+            x = self.model.maxpool(x)
+            x = self.model.layer1(x)
+            x = self.model.layer2(x)
+            if self.model.layer3 is not None:
+                x = self.model.layer3(x)
+            if self.model.layer4 is not None:
+                x = self.model.layer4(x)
+            x = self.model.avgpool(x)
+            if args.aggregator == 'gem':
+                x = self.model.fc(x)
+            return x
 
     
     def configure_optimizers(self):
@@ -115,9 +119,12 @@ class LightningModel(pl.LightningModule):
         elif args.optimizer== 'adamw':
             print(f"OPTIMIZER: {args.optimizer} with LEARNING_RATE: {args.learning_rate} and WEIGHT_DECAY: {args.weight_decay}")
             optimizers = torch.optim.AdamW(self.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+        elif args.optimizer== 'radam':
+            print(f"OPTIMIZER: {args.optimizer} with LEARNING_RATE: {args.learning_rate} and WEIGHT_DECAY: {args.weight_decay}")
+            optimizers = torch.optim.RAdam(self.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
         elif args.optimizer== 'asgd':
             print(f"OPTIMIZER: {args.optimizer} with LEARNING_RATE: {args.learning_rate} and WEIGHT_DECAY: {args.weight_decay}")
-            optimizers = torch.optim.ASGD(self.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay, momentum=args.momentum)
+            optimizers = torch.optim.ASGD(self.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
         return optimizers
 
     #  The loss function call (this method will be called at each training iteration)
