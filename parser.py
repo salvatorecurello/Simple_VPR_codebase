@@ -42,6 +42,12 @@ def parse_arguments():
                         help="weight_decay for the optimizer")
     parser.add_argument("--momentum", type=float, default=0.9,
                         help="momentum for the optimizer")
+    parser.add_argument("--aggregator", type=str, default='avg', 
+                        help="type of aggregation")
+    parser.add_argument("--scheduler", type=str, default='none', 
+                        help="scheduler")
+    parser.add_argument("--tmax", type=int, default=5, 
+                        help="value of T_max of CosineAnnealingLR")                    
                         
     # Architecture parameters
     parser.add_argument("--descriptors_dim", type=int, default=512,
@@ -63,8 +69,6 @@ def parse_arguments():
     parser.add_argument("--test_path", type=str, default="data/sf_xs/test",
                         help="path to test set (must contain database and queries)")
 
-    # Aggregation
-    parser.add_argument("--aggregator", type=str, default='avg', help="type of aggregation")
     
     args = parser.parse_args()
     return args
