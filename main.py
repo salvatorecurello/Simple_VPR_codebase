@@ -26,6 +26,10 @@ from aggregators.mixvpr import MixVPR
 
 from pytorch_metric_learning.distances import CosineSimilarity, DotProductSimilarity
 
+from pytorch_lightning.callbacks import LearningRateMonitor
+import torch.optim.lr_scheduler as lr_scheduler
+
+
 args = parser.parse_arguments()
 
 
@@ -86,6 +90,7 @@ class LightningModel(pl.LightningModule):
             self.miner_fn = miners.PairMarginMiner(pos_margin=0.2, neg_margin=0.8)
         else: 
             self.miner_fn = None
+        
 
     
     def forward(self, x):
@@ -125,7 +130,31 @@ class LightningModel(pl.LightningModule):
         elif args.optimizer== 'asgd':
             print(f"OPTIMIZER: {args.optimizer} with LEARNING_RATE: {args.learning_rate} and WEIGHT_DECAY: {args.weight_decay}")
             optimizers = torch.optim.ASGD(self.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
-        return optimizers
+        if args.scheduler== 'cosineann':
+            print(f"SCHEDULER: {args.scheduler}")
+            scheduler = lr_scheduler.CosineAnnealingLR(optimizers, T_max=args.tmax, verbose=True)
+            return {
+            'optimizer': optimizers,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'interval': 'epoch', 
+                'frequency': 1
+                }
+            }
+        else:
+            return optimizers
+        
+        
+        ################## SCHEDULER ##############
+        #if args.scheduler== 'reducelr':
+        #    print(f"SCHEDULER: {args.scheduler}")
+        #    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizers, mode='max', patience=2, verbose=True)
+        #return {
+        #    "optimizer": optimizers,
+        #    "lr_scheduler": lr_scheduler,
+        #    "monitor": 'val/R@1'
+        #}
+        #############################################
 
     #  The loss function call (this method will be called at each training iteration)
     def loss_function(self, descriptors, labels):
@@ -149,6 +178,8 @@ class LightningModel(pl.LightningModule):
         loss = self.loss_function(descriptors, labels)  # Call the loss_function we defined above
         
         self.log('loss', loss.item(), logger=True)
+        if args.scheduler == 'cosineann':
+            self.log('learning_rate', self.trainer.optimizers[0].param_groups[0]['lr'], prog_bar=True, logger=True)
         return {'loss': loss}
 
     # For validation and test, we iterate step by step over the validation set
@@ -225,7 +256,14 @@ if __name__ == '__main__':
     )
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/", version=args.exp_name)
-
+    
+    ######### SCHEDULER ###############
+    #if args.scheduler == 'reducelro':
+    #    cb=[checkpoint_cb, LearningRateMonitor()]
+    #else:
+    #    cb=[checkpoint_cb]
+    ###################################
+    
     # Instantiate a trainer
     trainer = pl.Trainer(
         accelerator='gpu',
@@ -240,7 +278,10 @@ if __name__ == '__main__':
         reload_dataloaders_every_n_epochs=1,  # we reload the dataset to shuffle the order
         log_every_n_steps=20,
     )
+    
+    #if args.scheduler == 'none':
     trainer.validate(model=model, dataloaders=val_loader, ckpt_path=args.checkpoint)
+    #else: 
     trainer.fit(model=model, ckpt_path=args.checkpoint, train_dataloaders=train_loader, val_dataloaders=val_loader)
     trainer.test(model=model, dataloaders=test_loader, ckpt_path='best')
 
